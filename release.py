@@ -10,14 +10,15 @@ import shutil
 import subprocess
 import datetime
 import platform
+from pathlib import Path
 
 # ===================== Configuration =====================
 APP_NAME = "DocxToRenpy"
 APP_VERSION = "2.0.0"
 MAIN_SCRIPT = "main.py"
-OUTPUT_DIR = "dist"
-BUILD_DIR = "build"
-ICON_PATH = os.path.join("assets", "icon.png")
+OUTPUT_DIR = Path("dist")
+BUILD_DIR = Path("build")
+ICON_PATH = Path("assets/icon.png")
 
 # PyInstaller base options
 PYINSTALLER_COMMON = [
@@ -31,10 +32,10 @@ PYINSTALLER_COMMON = [
 # ===================== Helper Functions =====================
 
 def clear_directory(dir_path):
-    if os.path.exists(dir_path):
+    if dir_path.exists():
         print(f"Cleaning {dir_path}...")
         shutil.rmtree(dir_path)
-    os.makedirs(dir_path, exist_ok=True)
+    dir_path.mkdir(parents=True, exist_ok=True)
 
 def clean_pycache():
     for root, dirs, _ in os.walk(".", topdown=False):
@@ -61,12 +62,12 @@ def check_prerequisites():
 
 # ===================== Build Functions =====================
 
-def run_pyinstaller(platform_system):
+def run_pyinstaller(system):
     """Run PyInstaller based on platform"""
     cmd = ["pyinstaller", f"--name={APP_NAME}"] + PYINSTALLER_COMMON
 
     # macOS: onedir mode
-    if platform_system == "Darwin":
+    if system == "Darwin":
         cmd.append("--onedir")
     else:  # Windows & Linux
         cmd.append("--onefile")
@@ -75,66 +76,71 @@ def run_pyinstaller(platform_system):
     print(f"Running PyInstaller: {' '.join(cmd)}")
     subprocess.run(cmd, check=True)
 
-def create_zip(platform_system):
+def create_zip(system):
     """Create zip package for distribution"""
-    dist_dir = os.path.join(OUTPUT_DIR, APP_NAME)
-    if not os.path.exists(dist_dir):
-        # Fallback to the normal dist folder
-        dist_dir = os.path.join(OUTPUT_DIR, APP_NAME) if platform_system != "Linux" else OUTPUT_DIR
+    if system == "Linux":
+        # Single executable
+        dist_path = OUTPUT_DIR / APP_NAME
+        exe_path = OUTPUT_DIR / APP_NAME
+        if exe_path.exists():
+            temp_dir = BUILD_DIR / f"{APP_NAME}_zip"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy(exe_path, temp_dir / APP_NAME)
+            dist_path = temp_dir
+    elif system == "Darwin":
+        dist_path = OUTPUT_DIR / APP_NAME
+    else:
+        dist_path = OUTPUT_DIR
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    zip_name = f"{APP_NAME}_{APP_VERSION}_{timestamp}_{platform_system.lower()}"
-    shutil.make_archive(zip_name, 'zip', dist_dir)
+    zip_name = f"{APP_NAME}_{APP_VERSION}_{timestamp}_{system.lower()}"
+    shutil.make_archive(zip_name, 'zip', dist_path)
     print(f"Created zip: {zip_name}.zip")
 
 # ===================== Linux AppImage =====================
 
 def create_appimage():
     """Create AppImage for Linux"""
-    appdir = f"{APP_NAME}.AppDir"
-    os.makedirs(f"{appdir}/usr/bin", exist_ok=True)
+    appdir = Path(f"{APP_NAME}.AppDir")
+    bin_dir = appdir / "usr/bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy PyInstaller onedir output to AppDir
-    src_dir = os.path.join(OUTPUT_DIR, APP_NAME)
-    exe_name = APP_NAME
-    if not os.path.exists(src_dir):
-        raise FileNotFoundError(f"Linux dist folder not found: {src_dir}")
+    exe_path = OUTPUT_DIR / APP_NAME
+    if not exe_path.exists():
+        raise FileNotFoundError(f"Linux executable not found: {exe_path}")
 
-    shutil.copy(os.path.join(src_dir, exe_name), f"{appdir}/usr/bin/{exe_name}")
+    shutil.copy(exe_path, bin_dir / APP_NAME)
 
     # Create AppRun launcher
-    apprun_path = os.path.join(appdir, "AppRun")
-    with open(apprun_path, "w") as f:
-        f.write(f"""#!/bin/bash
+    apprun_path = appdir / "AppRun"
+    apprun_path.write_text(f"""#!/bin/bash
 HERE="$(dirname "$(readlink -f "${{0}}")")"
-exec "$HERE/usr/bin/{exe_name}" "$@"
+exec "$HERE/usr/bin/{APP_NAME}" "$@"
 """)
     os.chmod(apprun_path, 0o755)
 
-    # Create minimal .desktop file
-    desktop_file = os.path.join(appdir, f"{APP_NAME}.desktop")
-    with open(desktop_file, "w") as f:
-        f.write(f"""[Desktop Entry]
+    # Minimal .desktop file
+    desktop_file = appdir / f"{APP_NAME}.desktop"
+    desktop_file.write_text(f"""[Desktop Entry]
 Name={APP_NAME}
-Exec={exe_name}
+Exec={APP_NAME}
 Icon={APP_NAME}
 Type=Application
 Categories=Utility;
 """)
 
-    # Download appimagetool
-    appimagetool = "appimagetool"
-    if not os.path.exists(appimagetool):
+    # Download appimagetool if missing
+    appimagetool = Path("./appimagetool")
+    if not appimagetool.exists():
         subprocess.run([
             "wget",
-            "-O", appimagetool,
+            "-O", str(appimagetool),
             "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
         ], check=True)
         os.chmod(appimagetool, 0o755)
 
-    # Build AppImage
-    output_appimage = f"{APP_NAME}_{APP_VERSION}_linux_x86_64.AppImage"
-    subprocess.run([f"./{appimagetool}", appdir, output_appimage], check=True)
+    output_appimage = Path(f"{APP_NAME}_{APP_VERSION}_linux_x86_64.AppImage")
+    subprocess.run([str(appimagetool), str(appdir), str(output_appimage)], check=True)
     print(f"Created AppImage: {output_appimage}")
     return output_appimage
 
