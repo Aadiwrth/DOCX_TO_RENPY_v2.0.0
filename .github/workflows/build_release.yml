@@ -1,4 +1,4 @@
-name: Build Releases
+name: Build DocxToRenpy
 
 on:
   push:
@@ -8,35 +8,45 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller pillow customtkinter
+      - name: Upgrade pip & Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pillow customtkinter
 
-    - name: Run release script
-      run: |
-        python release.py
+      - name: Linux extra dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 wget
 
-    - name: Upload release artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: DocxToRenpy-${{ matrix.os }}
-        path: |
-          dist/*.zip
-          *.AppImage
+      - name: macOS extra dependencies
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install tcl-tk
+
+      - name: Run Release Script
+        run: python release.py
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DocxToRenpy-${{ matrix.os }}
+          path: |
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.app
+            dist/*.exe
