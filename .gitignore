@@ -4,11 +4,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 .vscode/
-
+release.py
 
 # C extensions
 *.so
-
+asdasd.md
+appimagetool
+DocxToRenpy.AppDir/
 #outputs
 quick_convert_data/
 # Distribution / packaging
