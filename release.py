@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build script for Docx to Renpy Converter
-Creates distributable executables for Windows, macOS, and Linux
+Creates distributable executables for Windows, macOS, and Linux (with AppImage)
 """
 
 import os
@@ -30,7 +30,6 @@ PYINSTALLER_COMMON = [
 ]
 
 # ===================== Helper Functions =====================
-
 def clear_directory(dir_path):
     if dir_path.exists():
         print(f"Cleaning {dir_path}...")
@@ -61,7 +60,6 @@ def check_prerequisites():
         return False
 
 # ===================== Build Functions =====================
-
 def run_pyinstaller(system):
     """Run PyInstaller based on platform"""
     cmd = ["pyinstaller", f"--name={APP_NAME}"] + PYINSTALLER_COMMON
@@ -69,7 +67,10 @@ def run_pyinstaller(system):
     # macOS: onedir mode
     if system == "Darwin":
         cmd.append("--onedir")
-    else:  # Windows & Linux
+    elif system == "Linux":
+        # For AppImage we need onedir
+        cmd.append("--onedir")
+    else:  # Windows
         cmd.append("--onefile")
 
     cmd.append(MAIN_SCRIPT)
@@ -79,18 +80,11 @@ def run_pyinstaller(system):
 def create_zip(system):
     """Create zip package for distribution"""
     if system == "Linux":
-        # Single executable
         dist_path = OUTPUT_DIR / APP_NAME
-        exe_path = OUTPUT_DIR / APP_NAME
-        if exe_path.exists():
-            temp_dir = BUILD_DIR / f"{APP_NAME}_zip"
-            temp_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy(exe_path, temp_dir / APP_NAME)
-            dist_path = temp_dir
     elif system == "Darwin":
         dist_path = OUTPUT_DIR / APP_NAME
     else:
-        dist_path = OUTPUT_DIR
+        dist_path = OUTPUT_DIR / APP_NAME + ".exe"
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     zip_name = f"{APP_NAME}_{APP_VERSION}_{timestamp}_{system.lower()}"
@@ -98,14 +92,14 @@ def create_zip(system):
     print(f"Created zip: {zip_name}.zip")
 
 # ===================== Linux AppImage =====================
-
 def create_appimage():
     """Create AppImage for Linux"""
     appdir = Path(f"{APP_NAME}.AppDir")
     bin_dir = appdir / "usr/bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
 
-    exe_path = OUTPUT_DIR / APP_NAME
+    exe_dir = OUTPUT_DIR / APP_NAME  # onedir build output
+    exe_path = exe_dir / APP_NAME
     if not exe_path.exists():
         raise FileNotFoundError(f"Linux executable not found: {exe_path}")
 
@@ -145,7 +139,6 @@ Categories=Utility;
     return output_appimage
 
 # ===================== Main =====================
-
 def main():
     system = platform.system()
     print(f"=== Building {APP_NAME} v{APP_VERSION} for {system} ===")
