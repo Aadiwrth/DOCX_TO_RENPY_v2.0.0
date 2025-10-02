@@ -31,11 +31,26 @@ def resource_path(relative_path):
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = Path(sys._MEIPASS)
+        # print(f"[PyInstaller Mode] Base path: {base_path}")
     except AttributeError:
         # If not running as a bundle, use the script's directory
         base_path = Path(__file__).parent.parent.parent
+        # print(f"[Dev Mode] Base path: {base_path}")
     
-    return base_path / relative_path
+    full_path = base_path / relative_path
+    # print(f"Resource path for '{relative_path}': {full_path}")
+    # print(f"File exists: {full_path.exists()}")
+    
+    # List what's in the base directory for debugging
+    # if base_path.exists():
+    #     # print(f"Contents of {base_path}:")
+    #     try:
+    #         for item in base_path.iterdir():
+    #             print(f"  - {item.name}")
+    #     except Exception as e:
+    #         print(f"  Could not list directory: {e}")
+    
+    return full_path
 
 
 class Sidebar(ctk.CTkScrollableFrame):
@@ -228,10 +243,9 @@ class Sidebar(ctk.CTkScrollableFrame):
                 )
                 kofi_button.pack(pady=4)
             else:
-                # raise FileNotFoundError(f"Ko-fi image not found at {kofi_path}")
                 raise FileNotFoundError
         except Exception as e:
-            print(f"Could not load Ko-fi image: {e}")  # Helpful for debugging
+            # print(f"Could not load Ko-fi image: {e}")  # Helpful for debugging
             kofi_button = ctk.CTkButton(
                 support_frame,
                 text="☕  Buy me a Coffee",

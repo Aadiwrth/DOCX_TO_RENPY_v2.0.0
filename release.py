@@ -83,6 +83,17 @@ def run_pyinstaller(system):
             cmd.append(f"--icon={ICON_LINUX}")
     
     # Add data files (assets folder)
+    # IMPORTANT: Make sure assets folder exists
+    assets_dir = Path("assets")
+    if not assets_dir.exists():
+        print(f"WARNING: Assets directory not found at {assets_dir.absolute()}")
+    else:
+        print(f"Assets directory found: {assets_dir.absolute()}")
+        # List files in assets
+        print("Assets contents:")
+        for item in assets_dir.iterdir():
+            print(f"  - {item.name}")
+    
     if system == "Windows":
         cmd.append("--add-data=assets;assets")
     else:  # macOS and Linux
