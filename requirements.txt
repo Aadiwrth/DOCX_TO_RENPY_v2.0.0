@@ -1,0 +1,6 @@
+python-docx==1.1.2
+sv-ttk==2.6
+pyinstaller==6.10.0
+customtkinter>=5.2.0
+python-docx>=0.8.11
+Pillow>=9.0.0
