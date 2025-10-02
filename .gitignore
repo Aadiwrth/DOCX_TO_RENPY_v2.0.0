@@ -9,7 +9,6 @@ __pycache__/
 # C extensions
 *.so
 asdasd.md
-appimagetool
 
 #outputs
 quick_convert_data/
