@@ -2,10 +2,12 @@
 Sidebar component with file list and controls
 """
 
+import sys
 import customtkinter as ctk
 import webbrowser
 from pathlib import Path
 from PIL import Image
+
 try:
     from gui.utils.constants import *
     print("constants imported successfully")
@@ -17,6 +19,23 @@ try:
     print("api imported successfully")
 except Exception as e:
     print("FAILED importing api:", e)
+
+
+def resource_path(relative_path):
+    """
+    Get absolute path to resource, works for dev and for PyInstaller.
+    
+    When running as a PyInstaller bundle, files are extracted to a temp folder
+    and the path is stored in sys._MEIPASS.
+    """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = Path(sys._MEIPASS)
+    except AttributeError:
+        # If not running as a bundle, use the script's directory
+        base_path = Path(__file__).parent.parent.parent
+    
+    return base_path / relative_path
 
 
 class Sidebar(ctk.CTkScrollableFrame):
@@ -41,7 +60,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._create_support_section()
         self._create_separator()
         self._create_theme_section()
-    
+
     def _create_logo_section(self):
         """Create logo and version display"""
         logo_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -49,7 +68,9 @@ class Sidebar(ctk.CTkScrollableFrame):
         
         # Try to load logo
         try:
-            logo_path = Path(__file__).parent.parent.parent / "assets" / "icon.png"
+            # Use resource_path helper to get correct path in both dev and production
+            logo_path = resource_path("assets/icon.png")
+            
             if logo_path.exists():
                 logo_img = Image.open(logo_path)
                 logo_img = logo_img.resize((150, 150), Image.Resampling.LANCZOS)
@@ -58,8 +79,10 @@ class Sidebar(ctk.CTkScrollableFrame):
                 logo_label = ctk.CTkLabel(logo_frame, image=logo_image, text="")
                 logo_label.pack(pady=(0, 10))
             else:
-                raise FileNotFoundError
-        except:
+                raise FileNotFoundError(f"Logo not found at {logo_path}")
+        except Exception as e:
+            # Fallback to emoji if logo can't be loaded
+            print(f"Could not load logo: {e}")  # Helpful for debugging
             logo_label = ctk.CTkLabel(logo_frame, text="📄", font=ctk.CTkFont(size=60))
             logo_label.pack(pady=(0, 10))
         
@@ -70,7 +93,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             text_color=("gray60", "gray40")
         )
         version_label.pack(pady=(2, 0))
-    
+        
     def _create_separator(self):
         """Create a separator line"""
         separator = ctk.CTkFrame(self, height=2, fg_color=COLORS['border'])
@@ -184,7 +207,9 @@ class Sidebar(ctk.CTkScrollableFrame):
         
         # Ko-fi button
         try:
-            kofi_path = Path(__file__).parent.parent.parent / "assets" / "kofi.png"
+            # Use resource_path helper for Ko-fi image
+            kofi_path = resource_path("assets/kofi.png")
+            
             if kofi_path.exists():
                 kofi_img = Image.open(kofi_path)
                 kofi_img = kofi_img.resize((220, 55), Image.Resampling.LANCZOS)
@@ -203,8 +228,10 @@ class Sidebar(ctk.CTkScrollableFrame):
                 )
                 kofi_button.pack(pady=4)
             else:
+                # raise FileNotFoundError(f"Ko-fi image not found at {kofi_path}")
                 raise FileNotFoundError
-        except:
+        except Exception as e:
+            print(f"Could not load Ko-fi image: {e}")  # Helpful for debugging
             kofi_button = ctk.CTkButton(
                 support_frame,
                 text="☕  Buy me a Coffee",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build script for Docx to Renpy Converter
-Windows & macOS only (Linux handled separately)
+Supports Windows, macOS, and Linux
 """
 
 import os
@@ -18,16 +18,18 @@ APP_VERSION = "2.0.0"
 MAIN_SCRIPT = "main.py"
 OUTPUT_DIR = Path("dist")
 BUILD_DIR = Path("build")
-ICON_PATH = Path("assets/icon.ico")  # Changed to .ico for Windows
+ICON_PATH = Path("assets/icon.ico")
 
-# PyInstaller base options
+# Platform-specific icon paths
+ICON_WINDOWS = Path("assets/icon.ico")
+ICON_MACOS = Path("assets/icon.icns")  # macOS needs .icns format
+ICON_LINUX = Path("assets/icon.png")   # Linux uses .png
+
+# PyInstaller base options (icon will be added per platform)
 PYINSTALLER_COMMON = [
     "--clean",
     "--noconfirm",
-    f"--icon={ICON_PATH}",
     "--log-level=INFO",
-    # Bundle the assets folder
-    "--add-data=assets;assets" if platform.system() == "Windows" else "--add-data=assets:assets",
 ]
 
 # ===================== Helper Functions =====================
@@ -66,15 +68,39 @@ def check_prerequisites():
 def run_pyinstaller(system):
     """Run PyInstaller based on platform"""
     cmd = ["pyinstaller", f"--name={APP_NAME}"] + PYINSTALLER_COMMON
+    
+    # Add platform-specific icon
+    if system == "Windows":
+        if ICON_WINDOWS.exists():
+            cmd.append(f"--icon={ICON_WINDOWS}")
+    elif system == "Darwin":
+        if ICON_MACOS.exists():
+            cmd.append(f"--icon={ICON_MACOS}")
+        else:
+            print(f"Warning: {ICON_MACOS} not found, using default icon")
+    elif system == "Linux":
+        if ICON_LINUX.exists():
+            cmd.append(f"--icon={ICON_LINUX}")
+    
+    # Add data files (assets folder)
+    if system == "Windows":
+        cmd.append("--add-data=assets;assets")
+    else:  # macOS and Linux
+        cmd.append("--add-data=assets:assets")
 
+    # Platform-specific build options
     if system == "Darwin":
-        cmd.append("--onedir")  # macOS usually prefers onedir
+        cmd.append("--onedir")
         cmd.append("--windowed")
     elif system == "Windows":
         cmd.append("--onefile")
         cmd.append("--windowed")
+    elif system == "Linux":
+        # CHANGED: Use --onedir for Linux to properly handle assets
+        cmd.append("--onedir")
+        # Note: No --windowed on Linux as it may cause issues
     else:
-        raise RuntimeError("This script only handles Windows & macOS builds")
+        raise RuntimeError(f"Unsupported platform: {system}")
 
     cmd.append(MAIN_SCRIPT)
     print(f"Running PyInstaller: {' '.join(cmd)}")
@@ -90,8 +116,11 @@ def create_zip(system):
         dist_path = temp_dir
     elif system == "Darwin":
         dist_path = OUTPUT_DIR / f"{APP_NAME}.app"
+    elif system == "Linux":
+        # Linux now uses --onedir, so we need to zip the folder
+        dist_path = OUTPUT_DIR / APP_NAME
     else:
-        raise RuntimeError("This script only handles Windows & macOS builds")
+        raise RuntimeError(f"Unsupported platform: {system}")
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     zip_name = f"{APP_NAME}_{APP_VERSION}_{timestamp}_{system.lower()}"
@@ -104,9 +133,9 @@ def main():
     system = platform.system()
     print(f"=== Building {APP_NAME} v{APP_VERSION} for {system} ===")
 
-    if system not in ["Darwin", "Windows"]:
-        print("Skipping Linux build (handled separately)")
-        return
+    if system not in ["Darwin", "Windows", "Linux"]:
+        print(f"Unsupported platform: {system}")
+        sys.exit(1)
 
     if not check_prerequisites():
         sys.exit(1)
@@ -128,6 +157,13 @@ def main():
         sys.exit(1)
 
     print(f"=== Build complete for {system} ===")
+    
+    # Platform-specific instructions
+    if system == "Linux":
+        print("\nLinux build notes:")
+        print(f"  - Extract the zip file and run ./{APP_NAME}/{APP_NAME}")
+        print("  - The executable may need chmod +x to run")
+        print(f"  - All assets are bundled in the {APP_NAME} folder")
 
 if __name__ == "__main__":
     main()
