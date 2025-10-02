@@ -18,7 +18,7 @@ APP_VERSION = "2.0.0"
 MAIN_SCRIPT = "main.py"
 OUTPUT_DIR = Path("dist")
 BUILD_DIR = Path("build")
-ICON_PATH = Path("assets/icon.png")
+ICON_PATH = Path("assets/icon.ico")  # Changed to .ico for Windows
 
 # PyInstaller base options
 PYINSTALLER_COMMON = [
@@ -26,6 +26,8 @@ PYINSTALLER_COMMON = [
     "--noconfirm",
     f"--icon={ICON_PATH}",
     "--log-level=INFO",
+    # Bundle the assets folder
+    "--add-data=assets;assets" if platform.system() == "Windows" else "--add-data=assets:assets",
 ]
 
 # ===================== Helper Functions =====================

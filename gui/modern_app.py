@@ -5,12 +5,22 @@ Main application class for Docx to Renpy Converter
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from pathlib import Path
+import sys
 
 from gui.components import Sidebar, MainArea, Footer
 from gui.user import Settings, ThemeManager, SessionManager
 from gui.utils import FileHandler
 from gui.utils.constants import *
 from renpy_doc_convert.api import DOC_TO_RENPY_VERSION
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        base_path = Path(sys._MEIPASS)
+    except Exception:
+        base_path = Path(__file__).parent.parent
+    return base_path / relative_path
 
 
 class DocxToRenpyApp(ctk.CTk):
@@ -29,6 +39,14 @@ class DocxToRenpyApp(ctk.CTk):
         self.title(f"{WINDOW_TITLE_PREFIX} v{DOC_TO_RENPY_VERSION}")
         self.geometry(DEFAULT_WINDOW_SIZE)
         self.minsize(*MIN_WINDOW_SIZE)
+        
+        # Set window icon
+        try:
+            icon_path = resource_path("assets/icon.ico")
+            if icon_path.exists():
+                self.iconbitmap(str(icon_path))
+        except Exception as e:
+            print(f"Could not load icon: {e}")
         
         # Configure grid layout
         self.grid_columnconfigure(1, weight=1)

@@ -55,7 +55,7 @@ RENPY_FILE_TYPES = [("Renpy Script", "*.rpy"), ("All Files", "*.*")]
 # URLs
 URLS = {
     'kofi': "https://ko-fi.com/wokuu",
-    'github': "https://github.com/Aadiwrth/doc-to-renpy",
+    'github': "https://github.com/Aadiwrth",
 }
 
 # Fonts
